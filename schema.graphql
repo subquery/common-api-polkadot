@@ -25,12 +25,24 @@ type Event @entity {
 
   extrinsic: Extrinsic
 
-  #payload: JSON!
-  payload: String!
+  phase: Phase!
+
+  #Vec<Hash>
+  topics: [String]!
+
+  #parameters: JSON!
+  parameters: String!
 
   timestamp: Date! @index
 
   relatedAccounts: [String]!
+}
+
+type Phase @jsonField {
+  isApplyExtrinsic: Boolean!
+  asApplyExtrinsic: BigInt!
+  isFinalization: Boolean
+  isInitialization: Boolean
 }
 
 #type EventAccount @entity {
@@ -57,6 +69,8 @@ type Extrinsic @entity {
   nonce: Int!
 
   signature: String!
+
+  signatureType: String!
 
   version: Int!
 
@@ -93,7 +107,10 @@ type ExtrinsicV4 @jsonField {
 }
 
 type ExtrinsicV3 @jsonField {
-  #TODO
+  #TODO, support generic json type
+
+  # parameters: JSON!
+  parameters: String!
   extension: String
 }
 
@@ -126,6 +143,10 @@ type AccountBalanceHistory @entity {
   freeAmount: BigInt!
 
   reservedAmount: BigInt!
+
+#  need research
+#  feeFrozen: BigInt!
+#  miscFrozen: BigInt!
 
   # locked: JSON
   locked: [LockedBalance]
