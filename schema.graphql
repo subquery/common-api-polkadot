@@ -78,16 +78,18 @@ type Extrinsic @entity {
 
   signer: Account
 
-#   extrinsicV1: ExtrinsicV1 TODO
-#
-#   extrinsicV2: ExtrinsicV2 TODO
-#
-#   extrinsicV3: ExtrinsicV3 TODO
-
-   extra: ExtrinsicExtra
+  #   extrinsicV1: ExtrinsicV1 TODO
+  #
+  #   extrinsicV2: ExtrinsicV2 TODO
+  #
+  #   extrinsicV3: ExtrinsicV3 TODO
+  #
+  # TODO, replace back after support union type
+  # extra: ExtrinsicExtra
+  extra: String!
 }
 
-union ExtrinsicExtra = ExtrinsicV3 | ExtrinsicV4 #TODO, support union type
+#union ExtrinsicExtra = ExtrinsicV3 | ExtrinsicV4 #TODO, support union type
 
 type ExtrinsicV4 @jsonField {
 
@@ -108,7 +110,6 @@ type ExtrinsicV4 @jsonField {
 
 type ExtrinsicV3 @jsonField {
   #TODO, support generic json type
-
   # parameters: JSON!
   parameters: String!
   extension: String
@@ -120,7 +121,7 @@ type Account @entity {
 
   pubKey: String! @index
 
-#  subAccounts: [Account] more like subIdentity
+  #  subAccounts: [Account] more like subIdentity
 
   identity: [IdentityHistory]
 
@@ -144,9 +145,9 @@ type AccountBalanceHistory @entity {
 
   reservedAmount: BigInt!
 
-#  need research
-#  feeFrozen: BigInt!
-#  miscFrozen: BigInt!
+  feeFrozen: BigInt!
+
+  miscFrozen: BigInt!
 
   # locked: JSON
   locked: [LockedBalance]
@@ -270,7 +271,7 @@ type PayoutDetail @entity {
   id: ID! #era id + account id (can be both nom or vali)
   era: Era!
   account: Account!
-  # amount: BigInt!
+  amount: BigInt!
   isClaimed: Boolean!
   payout: ValidatorPayout!
 }

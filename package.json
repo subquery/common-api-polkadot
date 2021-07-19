@@ -9,7 +9,7 @@
     "test": "jest",
     "codegen": "./node_modules/.bin/subql codegen"
   },
-  "homepage": "https://github.com/subquery/subql-starter",
+  "homepage": "https://github.com/subquery/common-api-polkadot/",
   "repository": "github:subquery/subql-starter",
   "files": [
     "dist",
