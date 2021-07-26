@@ -2,8 +2,6 @@ type Block @entity {
   # BlockHeight
   id: ID!
 
-  blockHeight: BigInt! #for sorting
-
   hash: String! @index
 
   timestamp: Date! @index
@@ -40,7 +38,7 @@ type Event @entity {
 
 type Phase @jsonField {
   isApplyExtrinsic: Boolean!
-  asApplyExtrinsic: BigInt!
+  asApplyExtrinsic: String!
   isFinalization: Boolean
   isInitialization: Boolean
 }
@@ -68,9 +66,9 @@ type Extrinsic @entity {
 
   nonce: Int!
 
-  signature: String!
+  signature: String
 
-  signatureType: String!
+  signatureType: String
 
   version: Int!
 
@@ -96,11 +94,9 @@ type ExtrinsicV4 @jsonField {
   # parameters: JSON!
   parameters: String!
 
-  sender: String!
+  fee: String! #bigInt TODO json.string unable to serialize a BigInt
 
-  fee: BigInt!
-
-  tip: BigInt!
+  tip: String! #bigInt
 
   lifetime: [Int]
 
