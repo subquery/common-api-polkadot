@@ -17,6 +17,20 @@ import { decodeAddress } from "@polkadot/util-crypto"
 import { u8aToHex } from '@polkadot/util';
 
 
+const eventsMapping = {
+    'identity/IdentityCleared': handleIdentity,
+    'identity/IdentityKilled': handleIdentity,
+    'identity/IdentitySet': handleIdentity,
+    'identity/JudgementGiven': handleIdentity,
+    'identity/JudgementRequested': handleIdentity,
+    'identity/JudgementUnrequested': handleIdentity,
+    'identity/SubIdentityAdded': handleSubIdentity,
+    'identity/SubIdentityRemoved': handleSubIdentity,
+    'identity/SubIdentityRevoked': handleSubIdentity,
+
+};
+
+
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
     const record = new Block(block.block.header.number.toString());
     record.hash = block.block.header.hash.toString();
@@ -25,7 +39,7 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     // Handle identity event from here
     if(accounts.length!==0){
         for (const account of accounts){
-            await updateIdentity(account);
+            //update account balance here
         }
     }
     await record.save();
@@ -52,9 +66,18 @@ export async function handleEvent(event: SubstrateEvent): Promise<void> {
         record.relatedAccounts = relatedAccounts;
         await record.save();
     }
+    await processEvent(event);
+}
 
-
-
+export async function processEvent(event: SubstrateEvent): Promise<void> {
+    const {
+        event: { method, section },
+    } = event;
+    const eventType = `${section}/${method}`;
+    const handler = eventsMapping[eventType];
+    if (handler) {
+        await handler(event);
+    }
 }
 
 export async function handleExtrinsic(extrinsic: SubstrateExtrinsic): Promise<void> {
@@ -106,6 +129,17 @@ async function getOrCreateAccount(accountId: string): Promise<Account>{
     account.nextNonce = nonce? nonce.toNumber():0;
     await account.save()
     return account;
+}
+
+async function handleIdentity(event: SubstrateEvent):Promise<void>{
+    const {event: {data: [account]}} = event;
+    await updateIdentity(account.toString());
+}
+
+async function handleSubIdentity(event: SubstrateEvent):Promise<void>{
+    const {event: {data: [sub, main,]}} = event;
+    await updateIdentity(sub.toString());
+    await updateIdentity(main.toString());
 }
 
 async function updateIdentity(accountId: string):Promise<void>{
