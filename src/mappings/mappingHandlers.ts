@@ -36,7 +36,6 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     record.hash = block.block.header.hash.toString();
     record.timestamp = block.timestamp;
     const accounts = await extractRelatedAccountFromBlock(block);
-    // Handle identity event from here
     if(accounts.length!==0){
         for (const account of accounts){
             //update account balance here
