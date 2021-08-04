@@ -12,7 +12,7 @@ import {
     IdentityHistory
 } from "../types";
 import { Balance } from "@polkadot/types/interfaces";
-import {extractRelatedAccountFromBlock, extractRelatedAccountFromEvent, getExtrinsicFee} from "./helper";
+import {extractRelatedAccountsFromBlock, extractRelatedAccountsFromEvent, getExtrinsicFee} from "./helper";
 import { decodeAddress } from "@polkadot/util-crypto"
 import { u8aToHex } from '@polkadot/util';
 
@@ -35,8 +35,9 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     const record = new Block(block.block.header.number.toString());
     record.hash = block.block.header.hash.toString();
     record.timestamp = block.timestamp;
-    const accounts = await extractRelatedAccountFromBlock(block);
+    const accounts = await extractRelatedAccountsFromBlock(block);
     if(accounts.length!==0){
+        logger.info(`account: ${accounts}`)
         for (const account of accounts){
             //update account balance here
         }
@@ -44,11 +45,16 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     await record.save();
 }
 
+function getEventId(event: SubstrateEvent): string {
+    return `${event.block.block.header.number.toString()}-${event.idx.toString()}`
+}
+
 export async function handleEvent(event: SubstrateEvent): Promise<void> {
-    let record = await Event.get(`${event.block.block.header.number.toString()}-${event.idx.toString()}`);
-    const relatedAccounts = extractRelatedAccountFromEvent(event);
+    const eventId = getEventId(event);
+    let record = await Event.get(eventId);
+    const relatedAccounts = extractRelatedAccountsFromEvent(event);
     if(record === undefined){
-        record = new Event(`${event.block.block.header.number.toString()}-${event.idx.toString()}`);
+        record = new Event(eventId);
         record.module = event.event.section;
         record.event = event.event.method;
         record.blockId = event.block.block.header.number.toString();
