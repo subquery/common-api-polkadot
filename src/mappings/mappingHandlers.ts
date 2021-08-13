@@ -109,13 +109,18 @@ export async function handleExtrinsic(extrinsic: SubstrateExtrinsic): Promise<vo
 
 async function handleExtrinsicExtra (extrinsic: SubstrateExtrinsic): Promise<string>{
     const extrinsicHex = extrinsic.extrinsic.toHex();
-    const extrinsicFee = await getExtrinsicFee(extrinsicHex, extrinsic.block.block.hash.toString())
+    let extrinsicFee: bigint;
+    let lifetime: number[]|undefined;
+    if(extrinsic.extrinsic.isSigned){
+        extrinsicFee = await getExtrinsicFee(extrinsicHex, extrinsic.block.block.hash.toString())
+        lifetime = extrinsic.extrinsic.era.isMortalEra ? [extrinsic.extrinsic.era.asMortalEra.birth(extrinsic.block.block.header.number.toNumber()),
+            extrinsic.extrinsic.era.asMortalEra.death(extrinsic.block.block.header.number.toNumber())]: undefined
+    }
     const extrinsicExtra: ExtrinsicV4 = {
         parameters : extrinsic.extrinsic.method.args.toString(),
-        fee: extrinsicFee.toString(),
-        tip: extrinsic.extrinsic.tip.toBigInt().toString(),
-        lifetime: extrinsic.extrinsic.era.isMortalEra ? [extrinsic.extrinsic.era.asMortalEra.birth(extrinsic.block.block.header.number.toNumber()),
-            extrinsic.extrinsic.era.asMortalEra.death(extrinsic.block.block.header.number.toNumber())]: undefined,
+        fee: extrinsicFee?.toString(),
+        tip: extrinsic.extrinsic.isSigned? extrinsic.extrinsic.tip.toBigInt().toString():null,
+        lifetime: lifetime,
         extension: `{}`
     }
     return JSON.stringify(extrinsicExtra);

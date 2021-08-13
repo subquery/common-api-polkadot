@@ -10,11 +10,11 @@ const ACCOUNT_TYPES= ["Address","LookupSource","AccountId"]
 
 export async function extractRelatedAccountsFromBlock (block: SubstrateBlock): Promise<string[]> {
     const accounts: string[] = [];
-    const validators = await api.query.session.validators();
-    const blockAuthor = extractAuthor(block.block.header.digest, validators);
-    if(blockAuthor){
-        accounts.push(blockAuthor.toString());
-    }
+    // const validators = await api.query.session.validators();
+    // const blockAuthor = extractAuthor(block.block.header.digest, validators);
+    // if(blockAuthor){
+    //     accounts.push(blockAuthor.toString());
+    // }
 
     if(block.events.length!==0){
         for (const event of block.events){
