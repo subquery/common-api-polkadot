@@ -1,3 +1,21 @@
+## Example of user Stories against queries. 
+
+User should be able to see their account's operations history so that user can see which operations & how changed user's balance
+### 1) User should be able to see their account's operations history so that user can see which operations & how changed user's balance
+1. User should be able to see Staking rewards & slashes list so that user can understand their rewards history for Staking
+```graphql
+
+```
+2. User should be able to see Transfers list so that user can track the status of their transfers
+3. User should be able to see Other operations (Extrinsics) so that user can track the rest of the activities for their account
+4. User should be able to filter account’s operations history by type & time so that user can analyze their account’s history in a more convenient way
+
+
+
+
+
+
+
 ## Example queries for Polkadot on the following use cases. 
 
 

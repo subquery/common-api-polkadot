@@ -37,7 +37,6 @@ export async function handleBlock(block: SubstrateBlock): Promise<void> {
     record.timestamp = block.timestamp;
     const accounts = await extractRelatedAccountsFromBlock(block);
     if(accounts.length!==0){
-        logger.info(`account: ${accounts}`)
         for (const account of accounts){
             //update account balance here
         }
@@ -58,10 +57,9 @@ export async function handleEvent(event: SubstrateEvent): Promise<void> {
         record.module = event.event.section;
         record.event = event.event.method;
         record.blockId = event.block.block.header.number.toString();
-        record.extrinsicId = event.extrinsic.extrinsic.hash.toString();
+        record.extrinsicId = event.extrinsic?.extrinsic.hash.toString();
         record.phase = {
             isApplyExtrinsic: event.phase.isApplyExtrinsic,
-            asApplyExtrinsic: event.phase.asApplyExtrinsic.toBigInt().toString(),
             isFinalization: event.phase.isFinalization,
             isInitialization: event.phase.isInitialization,
         };
