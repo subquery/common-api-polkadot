@@ -75,7 +75,45 @@ query{
 ### 2) Nominators should be able to see their pending rewards so that they can be informed about them & proceed with payout them if needed
 1. Validators should be able to see their pending rewards so that they can be payout them
 
+```graphql
+
+query{
+  payoutDetails(filter:{
+    accountId: {equalTo: "1GED8WxSNvh6qqwbbaBHve6XUYV8sRZQ2PkW3R2vwrmVdM6"},
+    isClaimed: {equalTo: false}
+  }){
+    nodes{
+      amount
+      era{
+        id
+      }
+    }
+  }
+}
+
+
+```
+
 ### 3) Nominators & Validators should be able to see their total rewards amount for Staking so that they can analyze their profits
+
+```graphql
+query{
+  payoutDetails(filter:{
+    accountId: {equalTo: "1GED8WxSNvh6qqwbbaBHve6XUYV8sRZQ2PkW3R2vwrmVdM6"},
+    isClaimed: {equalTo: true}
+  }){
+    totalCount,
+    nodes{
+      amount,
+      era{
+        id
+      }
+    }
+  }
+}
+
+
+```
 
 ### 4) Nominators & Validators should be able to see how their Stake was changing so that they can analyze & validate it
 

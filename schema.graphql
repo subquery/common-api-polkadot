@@ -252,6 +252,14 @@ type IndividualExposure @jsonField {
   value: BigInt!
 }
 
+
+type NominatorValidator @entity {
+  id: ID! # hash of the combination of 3 below
+  era: Era! @index
+  nominator: Account!
+  validator: Account!
+}
+
 type ValidatorPayout @entity {
   # era id + validator id
   id: ID!

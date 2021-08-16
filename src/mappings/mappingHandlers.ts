@@ -1,21 +1,14 @@
 import {SubstrateExtrinsic,SubstrateEvent,SubstrateBlock} from "@subql/types";
 import {
-    Account,
-    AccountBalanceHistory,
-    Asset,
     Block,
     Event,
     Extrinsic,
-    LockedBalance,
-    Phase,
     ExtrinsicV4,
-    IdentityHistory
 } from "../types";
-import { Balance } from "@polkadot/types/interfaces";
 import {extractRelatedAccountsFromBlock, extractRelatedAccountsFromEvent, getExtrinsicFee} from "./helper";
-import { decodeAddress } from "@polkadot/util-crypto"
-import { u8aToHex } from '@polkadot/util';
 
+import { handleSession } from "./stakingHandlers";
+import { handleIdentity, handleSubIdentity, getOrCreateAccount } from "./identityHandlers"
 
 const eventsMapping = {
     'identity/IdentityCleared': handleIdentity,
@@ -27,6 +20,7 @@ const eventsMapping = {
     'identity/SubIdentityAdded': handleSubIdentity,
     'identity/SubIdentityRemoved': handleSubIdentity,
     'identity/SubIdentityRevoked': handleSubIdentity,
+    'session/NewSession': handleSession,
 
 };
 
@@ -124,44 +118,6 @@ async function handleExtrinsicExtra (extrinsic: SubstrateExtrinsic): Promise<str
         extension: `{}`
     }
     return JSON.stringify(extrinsicExtra);
-}
-
-//get or create account
-async function getOrCreateAccount(accountId: string): Promise<Account>{
-    let account = await Account.get(accountId);
-    if(account === undefined){
-        account = new Account(accountId);
-        account.pubKey = u8aToHex(decodeAddress(accountId));
-    }
-    const { nonce } = await api.query.system.account(accountId);
-    account.nextNonce = nonce? nonce.toNumber():0;
-    await account.save()
-    return account;
-}
-
-async function handleIdentity(event: SubstrateEvent):Promise<void>{
-    const {event: {data: [account]}} = event;
-    await updateIdentity(account.toString());
-}
-
-async function handleSubIdentity(event: SubstrateEvent):Promise<void>{
-    const {event: {data: [sub, main,]}} = event;
-    await updateIdentity(sub.toString());
-    await updateIdentity(main.toString());
-}
-
-async function updateIdentity(accountId: string):Promise<void>{
-    const account = await getOrCreateAccount(accountId);
-    const chainIdentity = await api.query.identity.identityOf(accountId)
-    if(chainIdentity.isNone){
-        return
-    }
-    const identity = Object.assign({} as IdentityHistory, chainIdentity.unwrap().toJSON());
-    if(account.identity==null){
-        account.identity = [];
-    }
-    account.identity.push(identity);
-    await account.save();
 }
 
 
