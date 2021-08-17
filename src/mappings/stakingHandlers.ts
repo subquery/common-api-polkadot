@@ -66,9 +66,7 @@ async function saveNominatorValidator(currentEraNumber: number, exposure: Exposu
             currNominatorValidator.eraId = currentEraNumber.toString();
             currNominatorValidator.nominatorId = nominatorAccount.id;
             currNominatorValidator.validatorId = validatorAccount.id;
-            await currNominatorValidator.save().catch(e => {
-                logger.error(`${e}`)
-            });
+            await currNominatorValidator.save().catch(e => { logger.error(e) })
         }
     }
 }
@@ -90,7 +88,5 @@ async function saveEraValidator(currentEraNumber: number, exposure: Exposure, va
         }
     })
 
-    await eraValidator.save().catch(e => {
-        logger.error(`${e}`)
-    })
+    await eraValidator.save().catch(e => { logger.error(e) })
 }
