@@ -232,26 +232,19 @@ type Session @entity{
   endBlock: Int
 }
 
-
 type EraValidator @entity {
   id: ID! #era_index - validator-id
   era: Era!
   validator: Account!
-  exposure: ValidatorExposure!
-  sessionKeys: String!
-}
-
-type ValidatorExposure @jsonField {
-  total: BigInt!
-  own: BigInt!
+  total: String! #bigint
+  own: String! #bigint
   others: [IndividualExposure]!
 }
 
 type IndividualExposure @jsonField {
-  nominator:String! #accountId
-  value: BigInt!
+  nominator: String! #accountId
+  value: String! #bigint
 }
-
 
 type NominatorValidator @entity {
   id: ID! # hash of the combination of 3 below
