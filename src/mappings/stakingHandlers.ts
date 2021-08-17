@@ -73,7 +73,7 @@ async function saveNominatorValidator(currentEraNumber: number, exposure: Exposu
 
 async function saveEraValidator(currentEraNumber: number, exposure: Exposure, validatorId: string) {
     let currenEraString = currentEraNumber.toString()
-    let entryId: string = sha256(`${currenEraString}${validatorId}${exposure.toString()}`)
+    let entryId: string = sha256(`${currenEraString}${validatorId}}`)
     let validator = await getOrCreateAccount(validatorId)
 
     const eraValidator = new EraValidator(entryId);
