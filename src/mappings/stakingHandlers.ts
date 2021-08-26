@@ -2,7 +2,7 @@ import { SubstrateEvent } from "@subql/types";
 import { sha256 } from 'js-sha256';
 import { Era } from "../types/models/Era";
 import { NominatorValidator } from '../types/models/NominatorValidator';
-import {getOrCreateAccount} from "./identityHandlers"
+import { getOrCreateAccount } from "./identityHandlers"
 import { EraIndex, Exposure } from "@polkadot/types/interfaces";
 import { EraValidator } from "../types";
 
@@ -12,7 +12,7 @@ export async function handleSession(event: SubstrateEvent): Promise<void> {
 
     const currentBlockNumber = event.block.block.header.number.toNumber();
     const currentEra = currentEraOptional.unwrap()
-    
+
     await saveCurrentEra(currentEra, currentBlockNumber);
     await saveValidators(currentEra.toNumber());
 }
@@ -41,14 +41,12 @@ async function saveCurrentEra(currentEra: EraIndex, blockNumber: number) {
 async function saveValidators(currentEraNumber: number) {
     let exposures = await api.query.staking.erasStakers.entries(currentEraNumber);
 
-    exposures.map(async ([key, exposure]) => {
+    await Promise.all(exposures.map(async ([key, exposure]) => {
         const [, validatorId] = key.args
-
         let validatorIdString = validatorId.toString()
-
         await saveEraValidator(currentEraNumber, exposure, validatorIdString);
         await saveNominatorValidator(currentEraNumber, exposure, validatorIdString);
-    })
+    }))
 }
 
 async function saveNominatorValidator(currentEraNumber: number, exposure: Exposure, validatorId: string) {
