@@ -78,7 +78,7 @@ export function extractAccountsFromNestedCalls(call: CallBase<AnyTuple>): string
 
 export function extractRelatedAccountsFromEvent (event: SubstrateEvent): string[]{
     const accounts: string[] = [];
-    let extrinsic = event.extrinsic?.extrinsic
+    let extrinsic = event.extrinsic? event.extrinsic.extrinsic: null;
     if(!extrinsic){
         return accounts
     }

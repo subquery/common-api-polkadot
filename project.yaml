@@ -16,5 +16,3 @@ dataSources:
           kind: substrate/CallHandler
         - handler: handleEvent
           kind: substrate/EventHandler
-
-

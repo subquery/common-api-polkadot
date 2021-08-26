@@ -51,7 +51,7 @@ export async function handleEvent(event: SubstrateEvent): Promise<void> {
         record.module = event.event.section;
         record.event = event.event.method;
         record.blockId = event.block.block.header.number.toString();
-        record.extrinsicId = event.extrinsic?.extrinsic.hash.toString();
+        record.extrinsicId = event.extrinsic?event.extrinsic.extrinsic.hash.toString():null;
         record.phase = {
             isApplyExtrinsic: event.phase.isApplyExtrinsic,
             isFinalization: event.phase.isFinalization,
@@ -112,7 +112,7 @@ async function handleExtrinsicExtra (extrinsic: SubstrateExtrinsic): Promise<str
     }
     const extrinsicExtra: ExtrinsicV4 = {
         parameters : extrinsic.extrinsic.method.args.toString(),
-        fee: extrinsicFee?.toString(),
+        fee: extrinsicFee? extrinsicFee.toString(): null,
         tip: extrinsic.extrinsic.isSigned? extrinsic.extrinsic.tip.toBigInt().toString():null,
         lifetime: lifetime,
         extension: `{}`
