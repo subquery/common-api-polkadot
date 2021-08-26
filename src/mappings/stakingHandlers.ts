@@ -77,8 +77,8 @@ async function saveEraValidator(currentEraNumber: number, exposure: Exposure, va
     const eraValidator = new EraValidator(entryId);
     eraValidator.eraId = currenEraString
     eraValidator.validatorId = validator.id
-    eraValidator.total = exposure.total.toString()
-    eraValidator.own = exposure.own.toString()
+    eraValidator.total = exposure.total.toBigInt()
+    eraValidator.own = exposure.own.toBigInt()
     eraValidator.others = exposure.others.map(other => {
         return {
             nominator: other.who.toString(),
