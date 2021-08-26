@@ -236,8 +236,8 @@ type EraValidator @entity {
   id: ID! #era_index - validator-id
   era: Era!
   validator: Account!
-  total: String! #bigint
-  own: String! #bigint
+  total: BigInt! #bigint
+  own: BigInt! #bigint
   others: [IndividualExposure]!
 }
 
