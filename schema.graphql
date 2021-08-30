@@ -256,9 +256,10 @@ type NominatorValidator @entity {
 type ValidatorPayout @entity {
   # era id + validator id
   id: ID!
-  eraId: String!
-  totalPayout: BigInt!
-  isClaimed: Boolean!
+  eraId: String! @index
+  validator: Account!
+  totalPayout: BigInt
+  isClaimed: Boolean! @index
   claimedAtBlock: Block
   claimer: Account
 }
@@ -269,5 +270,5 @@ type PayoutDetail @entity {
   account: Account!
   amount: BigInt!
   isClaimed: Boolean!
-  payout: ValidatorPayout!
+  payout: ValidatorPayout #if it is not claimed, it has no validator payout
 }
