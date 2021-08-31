@@ -22,8 +22,9 @@ const eventsMapping = {
     'identity/SubIdentityRevoked': handleSubIdentity,
     'session/NewSession': handleSession,
     'staking/EraPayout': handleEraPayout,
+    'staking/EraPaid': handleEraPayout,
     'staking/Reward': handleReward,
-
+    'staking/Rewarded': handleReward,
 
 };
 

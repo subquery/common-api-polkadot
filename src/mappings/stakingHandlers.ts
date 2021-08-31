@@ -3,7 +3,7 @@ import { sha256 } from 'js-sha256';
 import { Era } from "../types/models/Era";
 import { NominatorValidator } from '../types/models/NominatorValidator';
 import { getOrCreateAccount } from "./identityHandlers"
-import { EraIndex, Exposure, BalanceOf } from "@polkadot/types/interfaces";
+import { EraIndex, Exposure, BalanceOf,EventRecord } from "@polkadot/types/interfaces";
 import {EraValidator, Session, ValidatorPayout} from "../types";
 import {SessionIndex} from "@polkadot/types/interfaces/session";
 import { Vec } from '@polkadot/types';
@@ -166,7 +166,8 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
             (call.section === 'utility' && call.method === 'asDerivative') ||
             (call.section === 'proxy' && call.method === 'proxy' )
         ){
-            for (const payout of flatten(extractPayoutStakersFromNestedCalls(call))){
+            const events = extrinsic.events;
+            for (const payout of flatten(extractPayoutStakersFromNestedCalls(call,events))){
                 await updateValidatorPayout(
                     payout.era,
                     payout.account,
@@ -212,15 +213,22 @@ export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutSta
     }
 }
 
-export function extractPayoutStakersFromNestedCalls(call: CallBase<AnyTuple>): PayoutStaker[]{
+export function extractPayoutStakersFromNestedCalls(call: CallBase<AnyTuple>, events: EventRecord[]): PayoutStaker[]{
     const payoutStakers: PayoutStaker [] = [];
     if(
         (call.section === 'utility' && call.method === 'batch')
     ){
-        //TODO: skip the call is failed
-        const childCalls = call.args[0] as Vec<CallBase<AnyTuple>>;
-        return payoutStakers.concat(childCalls.map((call) => extractPayoutStakerFromCall(call)));
+        const batchInterrupted = events.find(event=> event.event.section === "utility" && event.event.method === "BatchInterrupted");
+        const childCalls = call.args[0] as Vec<CallBase<AnyTuple>>
+        if(batchInterrupted){
+            const [index] = batchInterrupted.event.data;
+            const successCalls = childCalls.toArray().splice(Number(index));
+            return payoutStakers.concat(successCalls.map((call) => extractPayoutStakerFromCall(call)));
+        }else{
+            return payoutStakers.concat(childCalls.map((call) => extractPayoutStakerFromCall(call)));
+        }
     }
+
     if(
         (call.section === 'utility' && call.method === 'batchAll')
     ){
