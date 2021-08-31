@@ -3,7 +3,7 @@ description: 'A subquery project provide common api for a polkadot network'
 repository: ''
 schema: ./schema.graphql
 network:
-  endpoint: 'wss://polkadot.api.onfinality.io/public-ws'
+  endpoint: 'wss://rpc.polkadot.io'
 dataSources:
   - name: main
     kind: substrate/Runtime
@@ -12,7 +12,7 @@ dataSources:
       handlers:
         - handler: handleBlock
           kind: substrate/BlockHandler
+        - handler: handleExtrinsic
+          kind: substrate/CallHandler
         - handler: handleEvent
           kind: substrate/EventHandler
-        - handler: handleCall
-          kind: substrate/CallHandler

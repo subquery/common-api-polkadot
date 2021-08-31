@@ -2,8 +2,6 @@ type Block @entity {
   # BlockHeight
   id: ID!
 
-  blockHeight: BigInt! #for sorting
-
   hash: String! @index
 
   timestamp: Date! @index
@@ -40,7 +38,6 @@ type Event @entity {
 
 type Phase @jsonField {
   isApplyExtrinsic: Boolean!
-  asApplyExtrinsic: BigInt!
   isFinalization: Boolean
   isInitialization: Boolean
 }
@@ -68,9 +65,9 @@ type Extrinsic @entity {
 
   nonce: Int!
 
-  signature: String!
+  signature: String
 
-  signatureType: String!
+  signatureType: String
 
   version: Int!
 
@@ -96,11 +93,9 @@ type ExtrinsicV4 @jsonField {
   # parameters: JSON!
   parameters: String!
 
-  sender: String!
+  fee: String! #bigInt TODO json.string unable to serialize a BigInt
 
-  fee: BigInt!
-
-  tip: BigInt!
+  tip: String! #bigInt
 
   lifetime: [Int]
 
@@ -237,24 +232,25 @@ type Session @entity{
   endBlock: Int
 }
 
-
 type EraValidator @entity {
   id: ID! #era_index - validator-id
   era: Era!
   validator: Account!
-  exposure: ValidatorExposure!
-  sessionKeys: String!
-}
-
-type ValidatorExposure @jsonField {
-  total: BigInt!
-  own: BigInt!
+  total: BigInt! #bigint
+  own: BigInt! #bigint
   others: [IndividualExposure]!
 }
 
 type IndividualExposure @jsonField {
-  nominator:String! #accountId
-  value: BigInt!
+  nominator: String! #accountId
+  value: String! #bigint
+}
+
+type NominatorValidator @entity {
+  id: ID! # hash of the combination of 3 below
+  era: Era! @index
+  nominator: Account!
+  validator: Account!
 }
 
 type ValidatorPayout @entity {
