@@ -114,13 +114,13 @@ export async function handleEraPayout(event: SubstrateEvent): Promise<void> {
     } = event;
     const era = await Era.get(eraIndex.toString());
     if(era){
-        await syncEraPayOut(eraIndex as EraIndex,validatorPayout as BalanceOf)
+        await syncEraPayout(eraIndex as EraIndex,validatorPayout as BalanceOf)
     }else{
         logger.error(`EraPayout at era ${eraIndex.toString()},but can not find era`)
         process.exit(1)
     }
 }
-async function syncEraPayOut(eraIndex: EraIndex, eraTotalPayout: BalanceOf): Promise<void>{
+async function syncEraPayout(eraIndex: EraIndex, eraTotalPayout: BalanceOf): Promise<void>{
     const erasRewardPoints = await api.query.staking.erasRewardPoints(eraIndex);
     for(const [accountId, rewardPoint] of erasRewardPoints.individual){
         let payout = new ValidatorPayout(sha256(`${eraIndex.toString()}${accountId.toString()}`))
