@@ -14,7 +14,7 @@ async function ensureSession(sessionId: number, startBlock: number){
     let session = new Session(sessionId.toString());
     session.startBlock = startBlock;
     await session.save()
-    let previousSession = await Era.get((sessionId-1).toString());
+    let previousSession = await Session.get((sessionId-1).toString());
     if(previousSession){
         previousSession.endBlock = startBlock -1 ;
         await previousSession.save();
@@ -23,13 +23,13 @@ async function ensureSession(sessionId: number, startBlock: number){
 
 export async function handleSession(event: SubstrateEvent): Promise<void> {
     let {event: {data: [sessionIndex]}} = event;
-    await ensureSession((sessionIndex as SessionIndex).toNumber(), event.block.block.header.number.toNumber());
+    let currentBlockNumber = event.block.block.header.number.toNumber()
 
+    await ensureSession((sessionIndex as SessionIndex).toNumber(), currentBlockNumber);
     const currentEraOptional = await api.query.staking.currentEra();
     if (currentEraOptional.isNone) {
         return;
     }else{
-        const currentBlockNumber = event.block.block.header.number.toNumber();
         const currentEra = currentEraOptional.unwrap()
         const eraSaved = await Era.get(currentEra.toString());
         if (eraSaved) {
@@ -41,9 +41,9 @@ export async function handleSession(event: SubstrateEvent): Promise<void> {
     }
 }
 
-async function saveCurrentEra(currentEra: EraIndex, blockNumber: number){
-    let currentEraNumber = currentEra.toNumber()
-    let currentEraString = currentEra.toString()
+async function saveCurrentEra(currentEraIndex: EraIndex, blockNumber: number){
+    let currentEraNumber = currentEraIndex.toNumber()
+    let currentEraString = currentEraIndex.toString()
     const newEra = new Era(currentEraString);
     newEra.startBlock = blockNumber;
     await newEra.save();
@@ -126,7 +126,7 @@ async function syncEraPayOut(eraIndex: EraIndex, eraTotalPayout: BalanceOf): Pro
         let payout = new ValidatorPayout(sha256(`${eraIndex.toString()}${accountId.toString()}`))
         //in early eras [0], exposure missed validators and nominator account, but they still get reward
         await getOrCreateAccount(accountId.toString());
-        payout.eraId = eraIndex.toString();
+        payout.eraId = eraIndex.toNumber();
         payout.isClaimed = false;
         payout.validatorId = accountId.toString();
         // USE BN METHOD?
@@ -140,10 +140,12 @@ async function syncEraPayOut(eraIndex: EraIndex, eraTotalPayout: BalanceOf): Pro
 
 export async function handleReward(event: SubstrateEvent): Promise<void>{
     let {event: {data: [account, reward]}} = event;
+    let blockNumber =  event.block.block.header.number.toString();
 
-    if (!event.extrinsic){
-        logger.warn(`Reward event ${event.block.block.header.number}-${event.idx} has no extrinsic`)
-        await checkPayoutEraEnd(account.toString(),event.block.block.header.number.toString());
+
+        if (!event.extrinsic){
+        logger.warn(`Reward event ${blockNumber}-${event.idx} has no extrinsic`)
+        await checkPayoutEraEnd(account.toString(),blockNumber);
     } else if(!event.extrinsic.success){
         return
     }
@@ -156,7 +158,7 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
             await updateValidatorPayout(
                 payout.era,
                 payout.account,
-                extrinsic.block.block.header.number.toString(),
+                blockNumber,
                 extrinsic.extrinsic.signer.toString()
             )
         }
@@ -202,7 +204,7 @@ interface PayoutStaker {
     era: string
 }
 
-export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutStaker{
+export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutStaker | undefined{
     if (call.section === 'staking' && call.method === "payoutStakers"){
         const account = call.args[0].toString();
         const era = call.args[1].toString();
@@ -254,7 +256,7 @@ async function updateValidatorPayout (era:string,validator: string, claimedAtBlo
         if(eraValidator){
             //Found Validator is in this era, but have no reward points (not record in erasRewardPoints)
             payout = new ValidatorPayout(eraValidatorId)
-            payout.eraId = era;
+            payout.eraId = Number(era);
             payout.isClaimed = true;
             payout.validatorId = validator;
             payout.claimerId = claimerId;
