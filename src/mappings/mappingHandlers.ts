@@ -7,7 +7,7 @@ import {
 } from "../types";
 import {extractRelatedAccountsFromBlock, extractRelatedAccountsFromEvent, getExtrinsicFee} from "./helper";
 
-import { handleSession } from "./stakingHandlers";
+import {handleSession, handleReward, handleEraPayout,} from "./stakingHandlers";
 import { handleIdentity, handleSubIdentity, getOrCreateAccount } from "./identityHandlers"
 
 const eventsMapping = {
@@ -21,6 +21,10 @@ const eventsMapping = {
     'identity/SubIdentityRemoved': handleSubIdentity,
     'identity/SubIdentityRevoked': handleSubIdentity,
     'session/NewSession': handleSession,
+    'staking/EraPayout': handleEraPayout,
+    'staking/EraPaid': handleEraPayout,
+    'staking/Reward': handleReward,
+    'staking/Rewarded': handleReward,
 
 };
 
