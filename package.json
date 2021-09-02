@@ -22,10 +22,10 @@
   "author": "jay ji",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@polkadot/api": "^4.17.1",
-    "@subql/types": "latest",
+    "@polkadot/api": "^5.7.1",
+    "@subql/types": "^0.8.3",
     "typescript": "^4.1.3",
-    "@subql/cli": "latest",
+    "@subql/cli": "^0.11.2",
     "lodash": "^4.17.21"
   }
 }
