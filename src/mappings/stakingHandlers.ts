@@ -266,7 +266,6 @@ async function updateValidatorPayout (era:string,validator: string, claimedAtBlo
             await payout.save();
         }else{
             logger.error(`Can not find payout and validator ${validator} at era ${era}, id: ${eraValidatorId}`)
-            process.exit(1);
         }
     }
     else{
