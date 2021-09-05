@@ -215,6 +215,14 @@ export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutSta
     }
 }
 
+function getPayoutCalls(payoutStakers:PayoutStaker[] ,childCall:CallBase<AnyTuple>, events: EventRecord[]): PayoutStaker []{
+    if(childCall.section === 'staking' && childCall.method === "payoutStakers"){
+        return payoutStakers.concat([extractPayoutStakerFromCall(childCall)]);
+    }else{
+        return payoutStakers.concat(flatten(extractPayoutStakersFromNestedCalls(childCall,events)));
+    }
+}
+
 export function extractPayoutStakersFromNestedCalls(call: CallBase<AnyTuple>, events: EventRecord[]): PayoutStaker[]{
     const payoutStakers: PayoutStaker [] = [];
     if(
@@ -230,7 +238,6 @@ export function extractPayoutStakersFromNestedCalls(call: CallBase<AnyTuple>, ev
             return payoutStakers.concat(childCalls.map((call) => extractPayoutStakerFromCall(call)));
         }
     }
-
     if(
         (call.section === 'utility' && call.method === 'batchAll')
     ){
@@ -239,11 +246,11 @@ export function extractPayoutStakersFromNestedCalls(call: CallBase<AnyTuple>, ev
     }
     if(call.section === 'utility' && call.method === 'asDerivative' ){
         const childCall = call.args[1] as CallBase<AnyTuple>;
-        return payoutStakers.concat([extractPayoutStakerFromCall(childCall)]);
+        return getPayoutCalls(payoutStakers,childCall,events);
     }
     if(call.section === 'proxy' && call.method === 'proxy' ){
         const childCall = call.args[2] as CallBase<AnyTuple>;
-        return payoutStakers.concat([extractPayoutStakerFromCall(childCall)]);
+        return getPayoutCalls(payoutStakers,childCall,events);
     }
     return payoutStakers;
 }
