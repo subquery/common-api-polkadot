@@ -1,3 +1,45 @@
+type HistoryTransfer @jsonField {
+  amount: String!
+  to: String!
+  from: String!
+  fee: String!
+  eventIdx: Int!
+  success: Boolean!
+}
+
+type HistoryReward @jsonField {
+  eventIdx: Int!
+  amount: String!
+  isReward: Boolean!,
+  era: Int,
+  validator: String
+}
+
+type AccumulatedReward @entity {
+  id: ID! #address
+  amount: BigInt!
+}
+
+type HistoryExtrinsic @jsonField {
+  hash: String!
+  module: String!
+  call: String!
+  fee: String!
+  success: Boolean!
+}
+
+type HistoryElement @entity {
+  id: ID!
+  blockNumber: Int!
+  extrinsicIdx: Int,
+  extrinsicHash: String
+  timestamp: Date! @index
+  address: String! @index
+  reward: HistoryReward
+  extrinsic: HistoryExtrinsic
+  transfer: HistoryTransfer
+}
+
 type Block @entity {
   # BlockHeight
   id: ID!
