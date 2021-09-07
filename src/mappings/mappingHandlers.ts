@@ -7,27 +7,31 @@ import {
 } from "../types";
 import {extractRelatedAccountsFromBlock, extractRelatedAccountsFromEvent, getExtrinsicFee} from "./helper";
 
+import {handleExtrinsicForHistoryElement} from "./historyExtrinsicHandlers"
+import {handleRewardForHistoryElement, handleSlashForHistoryElement} from "./historyRewardOrSlashHandlers"
+import {handleTransferForHistoryElement} from "./historyTransferHandlers"
 import {handleSession, handleReward, handleEraPayout,} from "./stakingHandlers";
-import { handleIdentity, handleSubIdentity, getOrCreateAccount } from "./identityHandlers"
+import {handleIdentity, handleSubIdentity, getOrCreateAccount} from "./identityHandlers"
 
 const eventsMapping = {
-    'identity/IdentityCleared': handleIdentity,
-    'identity/IdentityKilled': handleIdentity,
-    'identity/IdentitySet': handleIdentity,
-    'identity/JudgementGiven': handleIdentity,
-    'identity/JudgementRequested': handleIdentity,
-    'identity/JudgementUnrequested': handleIdentity,
-    'identity/SubIdentityAdded': handleSubIdentity,
-    'identity/SubIdentityRemoved': handleSubIdentity,
-    'identity/SubIdentityRevoked': handleSubIdentity,
-    'session/NewSession': handleSession,
-    'staking/EraPayout': handleEraPayout,
-    'staking/EraPaid': handleEraPayout,
-    'staking/Reward': handleReward,
-    'staking/Rewarded': handleReward,
-
+    'identity/IdentityCleared': [handleIdentity],
+    'identity/IdentityKilled': [handleIdentity],
+    'identity/IdentitySet': [handleIdentity],
+    'identity/JudgementGiven': [handleIdentity],
+    'identity/JudgementRequested': [handleIdentity],
+    'identity/JudgementUnrequested': [handleIdentity],
+    'identity/SubIdentityAdded': [handleSubIdentity],
+    'identity/SubIdentityRemoved': [handleSubIdentity],
+    'identity/SubIdentityRevoked': [handleSubIdentity],
+    'session/NewSession': [handleSession],
+    'staking/EraPayout': [handleEraPayout],
+    'staking/EraPaid': [handleEraPayout],
+    'staking/Reward': [handleReward, handleRewardForHistoryElement],
+    'staking/Rewarded': [handleReward, handleRewardForHistoryElement],
+    'staking/Slash': [handleSlashForHistoryElement],
+    'staking/Slashed': [handleSlashForHistoryElement],
+    'balances/Transfer': [handleTransferForHistoryElement]
 };
-
 
 export async function handleBlock(block: SubstrateBlock): Promise<void> {
     const record = new Block(block.block.header.number.toString());
@@ -75,13 +79,20 @@ export async function processEvent(event: SubstrateEvent): Promise<void> {
         event: { method, section },
     } = event;
     const eventType = `${section}/${method}`;
-    const handler = eventsMapping[eventType];
-    if (handler) {
-        await handler(event);
+    const handlers = eventsMapping[eventType];
+    if (handlers) {
+        for (let handler of handlers) {
+            await handler(event);
+        }
     }
 }
 
 export async function handleExtrinsic(extrinsic: SubstrateExtrinsic): Promise<void> {
+    await handleExtrinsicForInternalEntity(extrinsic);
+    await handleExtrinsicForHistoryElement(extrinsic);
+}
+
+async function handleExtrinsicForInternalEntity(extrinsic: SubstrateExtrinsic): Promise<void> {
     const thisExtrinsic = await Extrinsic.get(extrinsic.extrinsic.hash.toString());
     if(thisExtrinsic === undefined) {
         const record = new Extrinsic(extrinsic.extrinsic.hash.toString());
@@ -110,7 +121,7 @@ async function handleExtrinsicExtra (extrinsic: SubstrateExtrinsic): Promise<str
     let extrinsicFee: bigint;
     let lifetime: number[]|undefined;
     if(extrinsic.extrinsic.isSigned){
-        extrinsicFee = await getExtrinsicFee(extrinsicHex, extrinsic.block.block.hash.toString())
+        extrinsicFee = getExtrinsicFee(extrinsic)
         lifetime = extrinsic.extrinsic.era.isMortalEra ? [extrinsic.extrinsic.era.asMortalEra.birth(extrinsic.block.block.header.number.toNumber()),
             extrinsic.extrinsic.era.asMortalEra.death(extrinsic.block.block.header.number.toNumber())]: undefined
     }
@@ -123,55 +134,3 @@ async function handleExtrinsicExtra (extrinsic: SubstrateExtrinsic): Promise<str
     }
     return JSON.stringify(extrinsicExtra);
 }
-
-
-
-
-// async function newAccountBalance(accountId:string, assetId : number, freeAmount: bigint, reservedAmount: bigint, locked?:string ): Promise<AccountBalance>{
-//     const accountBalance = new AccountBalance(`${accountId}-${assetId}`);
-//     let asset = await Asset.get(assetId.toString());
-//     if(asset === undefined){
-//         const thisAsseet = await api.query.assets.metadata(assetId);
-//         asset = newAsset(
-//             assetId.toString(),
-//             thisAsseet.symbol.toString(),
-//             thisAsseet.decimals.toNumber(),
-//             (thisAsseet.deposit as Balance).toBigInt()
-//         )
-//         await asset.save()
-//     }
-//     accountBalance.accoutId = accountId;
-//     accountBalance.assetId = assetId.toString();
-//     accountBalance.reservedAmount = reservedAmount;
-//     accountBalance.freeAmount = freeAmount;
-//     accountBalance.locked = null;
-//     return accountBalance;
-// }
-//
-// async function updateAccountBalance(accountId:string, assetId: number){
-//     const { nonce, data: {free,reserved,miscFrozen,feeFrozen}} = await api.query.system.account(accountId.toString());
-//     let accountBalance = await AccountBalance.get(`${accountId}-${assetId}`);
-//     if(accountBalance === undefined){
-//         accountBalance = await newAccountBalance(accountId, assetId, (free as Balance).toBigInt(),(reserved as Balance).toBigInt())
-//     }
-//     accountBalance.freeAmount = (free as Balance).toBigInt();
-//     accountBalance.reservedAmount = (reserved as Balance).toBigInt();
-//     const locked = await api.query.balances.locks(accountId);
-//     if (locked !== undefined){
-//         accountBalance.locked = locked.map(lock=>{
-//             return {
-//                 id: lock.id.toString(),
-//                 amount: lock.amount.toBigInt(),
-//                 reasons: lock.reasons.toString()};
-//         })
-//     }
-//     await accountBalance.save();
-// }
-
-// function newAsset(id:string, symbol :string,decimal: number, totalIssuance?: bigint):Asset {
-//     const asset = new Asset(id);
-//     asset.symbol = symbol;
-//     asset.decimal = decimal;
-//     asset.totalIssuance = totalIssuance;
-//     return asset;
-// }

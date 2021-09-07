@@ -6,15 +6,51 @@ import { AnyTuple, CallBase } from '@polkadot/types/types';
 import { Vec } from '@polkadot/types';
 
 const ACCOUNT_TYPES= ["Address","LookupSource","AccountId"]
+const BATCH_CALLS = ["batch", "batchAll"]
+const TRANSFER_CALLS = ["transfer", "transferKeepAlive"]
 
+export function isBatch(call: CallBase<AnyTuple>) : boolean {
+    return call.section == "utility" && BATCH_CALLS.includes(call.method)
+}
+
+export function isProxy(call: CallBase<AnyTuple>) : boolean {
+    return call.section == "proxy" && call.method == "proxy"
+}
+
+export function isAsDerivative(call: CallBase<AnyTuple>) : boolean {
+    return call.section == "utility" && call.method == "asDerivative"   
+}
+
+export function isTransfer(call: CallBase<AnyTuple>) : boolean {
+    return call.section == "balances" && TRANSFER_CALLS.includes(call.method)
+}
+
+export function callsFromBatch(batchCall: CallBase<AnyTuple>) : CallBase<AnyTuple>[] {
+    return batchCall.args[0] as Vec<CallBase<AnyTuple>>
+}
+
+export function callFromProxy(proxyCall: CallBase<AnyTuple>) : CallBase<AnyTuple> {
+    return proxyCall.args[2] as CallBase<AnyTuple>
+}
+
+export function eventId(event: SubstrateEvent): string {
+    return `${blockNumber(event)}-${event.idx}`
+}
+
+export function eventIdFromBlockAndIdx(blockNumber: string, eventIdx: string) {
+    return `${blockNumber}-${eventIdx}`
+}
+
+export function blockNumber(event: SubstrateEvent): number {
+    return event.block.block.header.number.toNumber()
+}
+
+export function extrinsicIdFromBlockAndIdx(blockNumber: number, extrinsicIdx: number): string {
+    return `${blockNumber.toString()}-${extrinsicIdx.toString()}`
+}
 
 export async function extractRelatedAccountsFromBlock (block: SubstrateBlock): Promise<string[]> {
     const accounts: string[] = [];
-    // const validators = await api.query.session.validators();
-    // const blockAuthor = extractAuthor(block.block.header.digest, validators);
-    // if(blockAuthor){
-    //     accounts.push(blockAuthor.toString());
-    // }
 
     if(block.events.length!==0){
         for (const event of block.events){
@@ -45,10 +81,7 @@ export function extractAccountsFromNestedCalls(call: CallBase<AnyTuple>): string
             const index = Number(key);
             accounts.push(call.args[index].toString());
         }
-        if(
-            (call.section === 'utility' && call.method === 'batchAll')||
-            (call.section === 'utility' && call.method === 'batch')
-        ){
+        if(isBatch(call)){
             const calls = call.args[0] as Vec<CallBase<AnyTuple>>;
             return accounts.concat(
                 flatten(
@@ -56,7 +89,7 @@ export function extractAccountsFromNestedCalls(call: CallBase<AnyTuple>): string
                 ),
             );
         }
-        if(call.section === 'utility' && call.method === 'asDerivative' ){
+        if(isAsDerivative(call)){
             const childCall = call.args[1] as CallBase<AnyTuple>;
             return accounts.concat(
                 flatten(
@@ -64,7 +97,7 @@ export function extractAccountsFromNestedCalls(call: CallBase<AnyTuple>): string
                 ),
             );
         }
-        if(call.section === 'proxy' && call.method === 'proxy' ){
+        if(isProxy(call)){
             const childCall = call.args[2] as CallBase<AnyTuple>;
             return accounts.concat(
                 flatten(
@@ -96,7 +129,39 @@ export function extractRelatedAccountsFromEvent (event: SubstrateEvent): string[
 }
 
 
-export async function getExtrinsicFee(extrinsicHex: string, blockHash: string): Promise<bigint>{
-    const { partialFee } = await api.rpc.payment.queryInfo(extrinsicHex, blockHash)
-    return (partialFee as Balance).toBigInt();
+export function getExtrinsicFee(extrinsic: SubstrateExtrinsic): bigint {
+    let blockAuthorFee = getBlockAuthorFee(extrinsic)
+    let treasuryFee = getTreasuryFee(extrinsic)
+
+    let totalFee = blockAuthorFee + treasuryFee
+
+    return totalFee
+}
+
+function getBlockAuthorFee(extrinsic: SubstrateExtrinsic): bigint {
+    const eventRecord = extrinsic.events.find((event) => {
+        return event.event.method == "Deposit" && event.event.section == "balances"
+    })
+
+    if (eventRecord != undefined) {
+        const {event: {data: [, fee]}}= eventRecord
+
+        return (fee as Balance).toBigInt()
+    } else  {
+        return BigInt(0)
+    }
+}
+
+function getTreasuryFee(extrinsic: SubstrateExtrinsic): bigint {
+    const eventRecord = extrinsic.events.find((event) => {
+        return event.event.method == "Deposit" && event.event.section == "treasury"
+    })
+
+    if (eventRecord != undefined) {
+        const {event: {data: [fee]}}= eventRecord
+
+        return (fee as Balance).toBigInt()
+    } else  {
+        return BigInt(0)
+    }
 }
