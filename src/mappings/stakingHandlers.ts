@@ -26,8 +26,9 @@ export async function handleSession(event: SubstrateEvent): Promise<void> {
     let currentBlockNumber = event.block.block.header.number.toNumber()
 
     await ensureSession((sessionIndex as SessionIndex).toNumber(), currentBlockNumber);
-    const currentEraOptional = await api.query.staking.currentEra();
-    if (currentEraOptional.isNone) {
+    if (!api.query.staking.activeEra) return;
+    const currentEraOptional = await api.query.staking.activeEra();
+    if (currentEraOptional.isEmpty || currentEraOptional.isNone) {
         return;
     }else{
         const currentEra = currentEraOptional.unwrap()
@@ -35,8 +36,8 @@ export async function handleSession(event: SubstrateEvent): Promise<void> {
         if (eraSaved) {
             return
         }else{
-            await saveCurrentEra(currentEra, currentBlockNumber);
-            await saveValidators(currentEra.toNumber());
+            await saveCurrentEra(currentEra.index, currentBlockNumber);
+            await saveValidators(currentEra.index.toNumber());
         }
     }
 }
@@ -186,11 +187,12 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
 
 async function checkPayoutEraEnd(account: String, claimedBlockId:string ): Promise<void>{
     //If claim is triggered from system
-    const currentEraOptional = await api.query.staking.currentEra();
-    if (currentEraOptional.isNone) return;
+    if (!api.query.staking.activeEra) return;
+    const currentEraOptional = await api.query.staking.activeEra();
+    if (currentEraOptional.isNone || currentEraOptional.isEmpty) return;
     const eraIndex = currentEraOptional.unwrap()
     const historyDepth = (await api.query.staking.historyDepth()).toNumber();
-    const dueEra = eraIndex.toNumber() - historyDepth;
+    const dueEra = eraIndex.index.toNumber() - historyDepth;
     let payout = await ValidatorPayout.get(sha256(`${dueEra}${account}`))
     if(payout && payout.isClaimed === false){
         payout.isClaimed = true;
