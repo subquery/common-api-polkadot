@@ -16,6 +16,7 @@ export async function handleSubIdentity(event: SubstrateEvent):Promise<void>{
 
 async function updateIdentity(accountId: string):Promise<void>{
     const account = await getOrCreateAccount(accountId);
+    if (!api.query.identity || !api.query.identity.identityOf) return;
     const chainIdentity = await api.query.identity.identityOf(accountId)
     if(chainIdentity.isNone){
         return
@@ -35,8 +36,12 @@ export async function getOrCreateAccount(accountId: string): Promise<Account>{
         account = new Account(accountId);
         account.pubKey = u8aToHex(decodeAddress(accountId));
     }
-    const { nonce } = await api.query.system.account(accountId);
-    account.nextNonce = nonce? nonce.toNumber():0;
+    if(!api.query.system.account){
+        account.nextNonce = 0;
+    }else{
+        const { nonce } = await api.query.system.account(accountId);
+        account.nextNonce = nonce? nonce.toNumber():0;
+    }
     await account.save()
     return account;
 }
