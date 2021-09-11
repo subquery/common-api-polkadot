@@ -143,11 +143,14 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
     let {event: {data: [account, reward]}} = event;
     let blockNumber =  event.block.block.header.number.toString();
 
-
-        if (!event.extrinsic){
+    if (!event.extrinsic){
         logger.warn(`Reward event ${blockNumber}-${event.idx} has no extrinsic`)
         await checkPayoutEraEnd(account.toString(),blockNumber);
     } else if(!event.extrinsic.success){
+        return
+    } else if (event.extrinsic.extrinsic.method.section === 'timestamp' &&
+        event.extrinsic.extrinsic.method.method === `set`
+    ){
         return
     }
     else{
@@ -178,9 +181,6 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
                     extrinsic.extrinsic.signer.toString()
                 )
             }
-        }else if (call.section === 'timestamp' && call.method === "set"){
-            //early stage reward on Kusama triggered by timestamp.set eg.#27575
-            return
         }else{
             logger.warn(`Reward event: unexpect extrinsic ${call.section}.${call.method}`)
             process.exit(1)
