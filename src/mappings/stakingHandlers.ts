@@ -178,6 +178,9 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
                     extrinsic.extrinsic.signer.toString()
                 )
             }
+        }else if (call.section === 'timestamp' && call.method === "set"){
+            //early stage reward on Kusama triggered by timestamp.set eg.#27575
+            return
         }else{
             logger.warn(`Reward event: unexpect extrinsic ${call.section}.${call.method}`)
             process.exit(1)
