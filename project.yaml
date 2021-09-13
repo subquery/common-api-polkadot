@@ -11,7 +11,7 @@ network:
         {
           minmax: [
             1030,
-            1030
+            1031
           ],
           types:{
             IdentityInfo: {
