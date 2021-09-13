@@ -4,6 +4,32 @@ repository: ''
 schema: ./schema.graphql
 network:
   endpoint: 'wss://polkadot.api.onfinality.io/public-ws'
+  typesBundle: {
+    spec: {
+      kusama: {
+        types: [
+        {
+          minmax: [
+            1030,
+            1030
+          ],
+          types:{
+            IdentityInfo: {
+              additional: Vec<IdentityInfoAdditional>,
+                display: Data,
+                legal: Data,
+                web: Data,
+                riot: Data,
+                email: Data,
+                pgpFingerprint: Option<H160>,
+                image: Data
+            }
+          }
+        }
+        ],
+      }
+    }
+  }
 dataSources:
   - name: main
     kind: substrate/Runtime
