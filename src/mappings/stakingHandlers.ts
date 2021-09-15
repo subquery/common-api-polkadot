@@ -190,8 +190,9 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
                 )
             }
         }
-        else if (call.section === 'timestamp' &&
-            call.method === `set`
+        else if ((call.section === 'timestamp' &&
+            call.method === `set`) || (call.section === 'staking' &&
+            call.method === `payoutValidator`)
         ){
             return
         }
