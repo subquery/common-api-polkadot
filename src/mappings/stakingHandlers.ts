@@ -3,7 +3,7 @@ import { sha256 } from 'js-sha256';
 import { Era } from "../types/models/Era";
 import { NominatorValidator } from '../types/models/NominatorValidator';
 import { getOrCreateAccount } from "./identityHandlers"
-import { EraIndex, Exposure, BalanceOf,EventRecord } from "@polkadot/types/interfaces";
+import { EraIndex, Exposure, BalanceOf,EventRecord,AccountId } from "@polkadot/types/interfaces";
 import {EraValidator, Session, ValidatorPayout} from "../types";
 import {SessionIndex} from "@polkadot/types/interfaces/session";
 import { Vec } from '@polkadot/types';
@@ -148,10 +148,6 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
         await checkPayoutEraEnd(account.toString(),blockNumber);
     } else if(!event.extrinsic.success){
         return
-    } else if (event.extrinsic.extrinsic.method.section === 'timestamp' &&
-        event.extrinsic.extrinsic.method.method === `set`
-    ){
-        return
     }
     else{
         const extrinsic = event.extrinsic;
@@ -181,7 +177,25 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
                     extrinsic.extrinsic.signer.toString()
                 )
             }
-        }else{
+        }
+        else if (call.section === 'staking' &&
+            call.method === `payoutNominator`){
+            const era = call.args[0].toString();
+            for(const [account,] of call.args[1] as Vec<(AccountId)>){
+                await updateValidatorPayout(
+                    era,
+                    account.toString(),
+                    extrinsic.block.block.header.number.toString(),
+                    extrinsic.extrinsic.signer.toString()
+                )
+            }
+        }
+        else if (call.section === 'timestamp' &&
+            call.method === `set`
+        ){
+            return
+        }
+        else{
             logger.warn(`Reward event: unexpect extrinsic ${call.section}.${call.method}`)
             process.exit(1)
         }
