@@ -155,6 +155,7 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
 
         if((call.section === 'staking' && call.method === "payoutStakers")){
             const payout = extractPayoutStakerFromCall(call)
+            if (payout === undefined) return
             await updateValidatorPayout(
                 payout.era,
                 payout.account,
@@ -170,6 +171,7 @@ export async function handleReward(event: SubstrateEvent): Promise<void>{
         ){
             const events = extrinsic.events;
             for (const payout of flatten(extractPayoutStakersFromNestedCalls(call,events))){
+                if (payout === undefined) return
                 await updateValidatorPayout(
                     payout.era,
                     payout.account,
@@ -231,6 +233,7 @@ export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutSta
         const payoutStaker: PayoutStaker = {account,era}
         return payoutStaker;
     }else{
+        console.log(`Reward event: unexpect extrinsic ${call.section}.${call.method}`)
         return
     }
 }
@@ -238,6 +241,8 @@ export function extractPayoutStakerFromCall(call: CallBase<AnyTuple>): PayoutSta
 function getPayoutCalls(payoutStakers:PayoutStaker[] ,childCall:CallBase<AnyTuple>, events: EventRecord[]): PayoutStaker []{
     if(childCall.section === 'staking' && childCall.method === "payoutStakers"){
         return payoutStakers.concat([extractPayoutStakerFromCall(childCall)]);
+    }else if (childCall.section === 'staking' && childCall.method === "payoutValidator"){
+        return
     }else{
         return payoutStakers.concat(flatten(extractPayoutStakersFromNestedCalls(childCall,events)));
     }
