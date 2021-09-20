@@ -10,8 +10,9 @@ type HistoryTransfer @jsonField {
 type HistoryReward @jsonField {
   eventIdx: Int!
   amount: String!
-  isReward: Boolean!,
-  era: Int,
+  isReward: Boolean!
+  stash: String
+  era: Int
   validator: String
 }
 
