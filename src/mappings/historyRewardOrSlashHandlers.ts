@@ -8,6 +8,7 @@ import {
     isProxy,
     callFromProxy
 } from "./helper";
+import {cachedRewardDestination, cachedController} from "./cache";
 import {CallBase} from "@polkadot/types/types/calls";
 import {AnyTuple} from "@polkadot/types/types/codec";
 import {EraIndex} from "@polkadot/types/interfaces/staking"
@@ -55,36 +56,63 @@ async function handleRewardForTxHistory(rewardEvent: SubstrateEvent): Promise<vo
         return
     }
 
-    const distinctValidators = new Set(
-        payoutCallsArgs.map(([validator,]) => validator)
-    )
+    const payoutValidators = payoutCallsArgs.map(([validator,]) => validator)
 
     const initialCallIndex = -1
+
+    var accountsMapping: {[address: string]: string} = {}
+
+    for (const eventRecord of rewardEvent.block.events) {
+        if (
+            eventRecord.event.section == rewardEvent.event.section && 
+            eventRecord.event.method == rewardEvent.event.method) {
+
+            let {event: {data: [account, _]}} = eventRecord
+
+            let accountAddress = account.toString()
+            let rewardDestination = await cachedRewardDestination(accountAddress, eventRecord as SubstrateEvent)
+
+            if (rewardDestination.isStaked || rewardDestination.isStash) {
+                accountsMapping[accountAddress] = accountAddress
+            } else if (rewardDestination.isController) {
+                accountsMapping[accountAddress] = await cachedController(accountAddress, eventRecord as SubstrateEvent)
+            } else if (rewardDestination.isAccount) {
+                accountsMapping[accountAddress] = rewardDestination.asAccount.toString()
+            }
+        }
+    }
 
     await buildRewardEvents(
         rewardEvent.block,
         rewardEvent.extrinsic,
         rewardEvent.event.method,
         rewardEvent.event.section,
+        accountsMapping,
         initialCallIndex,
         (currentCallIndex, eventAccount) => {
-            return distinctValidators.has(eventAccount) ? currentCallIndex + 1 : currentCallIndex
+            if (payoutValidators.length > currentCallIndex + 1) {
+                return payoutValidators[currentCallIndex + 1] == eventAccount ? currentCallIndex + 1 : currentCallIndex
+            } else {
+                return currentCallIndex
+            }
         },
-        (currentCallIndex, amount) => {
+        (currentCallIndex, eventIdx, stash, amount) => {
             if (currentCallIndex == -1) {
                 return {
-                    eventIdx: rewardEvent.idx,
+                    eventIdx: eventIdx,
                     amount: amount,
                     isReward: true,
+                    stash: stash,
                     validator: "",
                     era: -1
                 }
             } else {
                 const [validator, era] = payoutCallsArgs[currentCallIndex]
                 return {
-                    eventIdx: rewardEvent.idx,
+                    eventIdx: eventIdx,
                     amount: amount,
                     isReward: true,
+                    stash: stash,
                     validator: validator,
                     era: era
                 }
@@ -127,15 +155,12 @@ async function handleSlashForTxHistory(slashEvent: SubstrateEvent): Promise<void
         // already processed reward previously
         return;
     }
-    if (!api.query.staking.activeEra) return;
-    const currentEra = await api.query.staking.activeEra()
-    if (currentEra.isEmpty || currentEra.isNone) return;
-    const currentEraIndex = currentEra.unwrap().index;
-    //can be undefined
-    const slashDefferDuration = api.consts.staking.slashDeferDuration
-    const slashEra = currentEraIndex.toNumber() - (slashDefferDuration ? slashDefferDuration.toNumber():0)
 
-    if (!api.query.staking.erasStakersClipped) return;
+    const currentEra = (await api.query.staking.currentEra()).unwrap()
+    const slashDeferDuration = api.consts.staking.slashDeferDuration
+
+    const slashEra = currentEra.toNumber() - slashDeferDuration.toNumber()
+
     const eraStakersInSlashEra = await api.query.staking.erasStakersClipped.entries(slashEra);
     const validatorsInSlashEra = eraStakersInSlashEra.map(([key, exposure]) => {
         let [, validatorId] = key.args
@@ -151,16 +176,18 @@ async function handleSlashForTxHistory(slashEvent: SubstrateEvent): Promise<void
         slashEvent.extrinsic,
         slashEvent.event.method,
         slashEvent.event.section,
+        {},
         initialValidator,
         (currentValidator, eventAccount) => {
             return validatorsSet.has(eventAccount) ? eventAccount : currentValidator
         },
-        (validator, amount) => {
+        (validator, eventIdx, stash, amount) => {
 
             return {
-                eventIdx: slashEvent.idx,
+                eventIdx: eventIdx,
                 amount: amount,
                 isReward: false,
+                stash: stash,
                 validator: validator,
                 era: slashEra
             }
@@ -173,9 +200,10 @@ async function buildRewardEvents<A>(
     extrinsic: SubstrateExtrinsic | undefined,
     eventMethod: String,
     eventSection: String,
+    accountsMapping: {[address: string]: string},
     initialInnerAccumulator: A,
     produceNewAccumulator: (currentAccumulator: A, eventAccount: string) => A,
-    produceReward: (currentAccumulator: A, amount: string) => HistoryReward
+    produceReward: (currentAccumulator: A, eventIdx: number, stash: string, amount: string) => HistoryReward
 ) {
     let blockNumber = block.block.header.number.toString()
     let blockTimestamp = block.timestamp
@@ -195,13 +223,17 @@ async function buildRewardEvents<A>(
             const element = new HistoryElement(eventId);
 
             element.timestamp = blockTimestamp
-            element.address = account.toString()
+
+            const accountAddress = account.toString()
+            const destinationAddress = accountsMapping[accountAddress]
+            element.address = destinationAddress != undefined ? destinationAddress : accountAddress
+
             element.blockNumber = block.block.header.number.toNumber()
             if (extrinsic !== undefined) {
                 element.extrinsicHash = extrinsic.extrinsic.hash.toString()
                 element.extrinsicIdx = extrinsic.idx
             }
-            element.reward = produceReward(newAccumulator, amount.toString())
+            element.reward = produceReward(newAccumulator, eventIndex, accountAddress, amount.toString())
 
             currentPromises.push(element.save())
 
