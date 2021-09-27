@@ -17,9 +17,13 @@ export async function handleTransferForHistoryElement(event: SubstrateEvent): Pr
 async function populateTransfer(element: HistoryElement, event: SubstrateEvent): Promise<void> {
     element.timestamp = event.block.timestamp
     element.blockNumber = blockNumber(event);
+
+    var fee = "0";
+
     if (event.extrinsic !== undefined) {
         element.extrinsicHash = event.extrinsic.extrinsic.hash.toString();
         element.extrinsicIdx = event.extrinsic.idx;
+        fee = getExtrinsicFee(event.extrinsic).toString()
     }
 
     const {event: {data: [from, to, amount]}} = event;
@@ -27,7 +31,7 @@ async function populateTransfer(element: HistoryElement, event: SubstrateEvent):
         amount: amount.toString(),
         from: from.toString(),
         to: to.toString(),
-        fee: getExtrinsicFee(event.extrinsic).toString(),
+        fee: fee,
         eventIdx: event.idx,
         success: true
     }
